@@ -1,0 +1,10 @@
+com\bank\mswallet\service\WalletService.class
+com\bank\mswallet\dto\WalletRequest.class
+com\bank\mswallet\repository\WalletRepository.class
+com\bank\mswallet\controller\WalletController.class
+com\bank\mswallet\dto\WalletResponse.class
+com\bank\mswallet\event\WalletEventProducer.class
+com\bank\mswallet\dto\LinkDebitCardRequest.class
+com\bank\mswallet\MsWalletApplication.class
+com\bank\mswallet\dto\WalletPaymentRequest.class
+com\bank\mswallet\model\Wallet.class

@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WalletController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-wallet</a> &gt; <a href="index.source.html" class="el_package">com.bank.mswallet.controller</a> &gt; <span class="el_source">WalletController.java</span></div><h1>WalletController.java</h1><pre class="source lang-java linenums">package com.bank.mswallet.controller;
+
+import com.bank.mswallet.dto.LinkDebitCardRequest;
+import com.bank.mswallet.dto.WalletPaymentRequest;
+import com.bank.mswallet.dto.WalletRequest;
+import com.bank.mswallet.dto.WalletResponse;
+import com.bank.mswallet.model.Wallet;
+import com.bank.mswallet.service.WalletService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+/**
+ * Controlador REST reactivo para monederos Yanki.
+ */
+@RestController
+@RequestMapping(&quot;/wallets&quot;)
+@RequiredArgsConstructor
+public class WalletController {
+
+    private final WalletService walletService;
+
+    /**
+     * Registra un monedero.
+     *
+     * @param request datos del monedero
+     * @return Mono con el monedero creado
+     */
+    @PostMapping
+    public Mono&lt;ResponseEntity&lt;WalletResponse&gt;&gt; create(@RequestBody WalletRequest request) {
+<span class="nc" id="L41">        return walletService.registerWallet(request.getDocumentType(), request.getDocumentNumber(),</span>
+<span class="nc" id="L42">                        request.getPhoneNumber(), request.getImei(), request.getEmail())</span>
+<span class="nc" id="L43">                .map(this::toResponse)</span>
+<span class="nc" id="L44">                .map(wallet -&gt; ResponseEntity.status(HttpStatus.CREATED).body(wallet));</span>
+    }
+
+    /**
+     * Busca un monedero por ID.
+     *
+     * @param id identificador del monedero
+     * @return Mono con respuesta o 404
+     */
+    @GetMapping(&quot;/{id}&quot;)
+    public Mono&lt;ResponseEntity&lt;WalletResponse&gt;&gt; getById(@PathVariable String id) {
+<span class="nc" id="L55">        return walletService.findById(id)</span>
+<span class="nc" id="L56">                .map(this::toResponse)</span>
+<span class="nc" id="L57">                .map(ResponseEntity::ok)</span>
+<span class="nc" id="L58">                .defaultIfEmpty(ResponseEntity.notFound().build());</span>
+    }
+
+    /**
+     * Lista todos los monederos.
+     *
+     * @return Flux con los monederos
+     */
+    @GetMapping
+    public Flux&lt;WalletResponse&gt; getAll() {
+<span class="nc" id="L68">        return walletService.findAll().map(this::toResponse);</span>
+    }
+
+    /**
+     * Actualiza correo e identificador del dispositivo.
+     *
+     * @param id identificador del monedero
+     * @param request datos actualizables
+     * @return Mono con respuesta o 404
+     */
+    @PutMapping(&quot;/{id}&quot;)
+    public Mono&lt;ResponseEntity&lt;WalletResponse&gt;&gt; update(@PathVariable String id,
+                                                        @RequestBody WalletRequest request) {
+<span class="nc" id="L81">        return walletService.update(id, request.getEmail(), request.getImei())</span>
+<span class="nc" id="L82">                .map(this::toResponse)</span>
+<span class="nc" id="L83">                .map(ResponseEntity::ok)</span>
+<span class="nc" id="L84">                .defaultIfEmpty(ResponseEntity.notFound().build());</span>
+    }
+
+    /**
+     * Elimina un monedero.
+     *
+     * @param id identificador del monedero
+     * @return Mono con 204 o 404
+     */
+    @DeleteMapping(&quot;/{id}&quot;)
+    public Mono&lt;ResponseEntity&lt;Void&gt;&gt; delete(@PathVariable String id) {
+<span class="nc" id="L95">        return walletService.delete(id)</span>
+<span class="nc bnc" id="L96" title="All 2 branches missed.">                .map(deleted -&gt; deleted</span>
+<span class="nc" id="L97">                        ? ResponseEntity.noContent().&lt;Void&gt;build()</span>
+<span class="nc" id="L98">                        : ResponseEntity.notFound().build());</span>
+    }
+
+    /**
+     * Asocia una tarjeta de debito a un monedero.
+     *
+     * @param id identificador del monedero
+     * @param request tarjeta que se asociara
+     * @return Mono con el monedero actualizado
+     */
+    @PostMapping(&quot;/{id}/debit-card&quot;)
+    public Mono&lt;ResponseEntity&lt;WalletResponse&gt;&gt; linkDebitCard(@PathVariable String id,
+                                                               @RequestBody LinkDebitCardRequest request) {
+<span class="nc" id="L111">        return walletService.linkDebitCard(id, request.getDebitCardId())</span>
+<span class="nc" id="L112">                .map(this::toResponse)</span>
+<span class="nc" id="L113">                .map(ResponseEntity::ok);</span>
+    }
+
+    /**
+     * Envía un pago entre dos celulares.
+     *
+     * @param request datos del pago
+     * @return Mono con el identificador del pago
+     */
+    @PostMapping(&quot;/payments&quot;)
+    public Mono&lt;ResponseEntity&lt;String&gt;&gt; sendPayment(@RequestBody WalletPaymentRequest request) {
+<span class="nc" id="L124">        return walletService.sendPayment(request.getSourcePhoneNumber(), request.getTargetPhoneNumber(),</span>
+<span class="nc" id="L125">                        request.getAmount())</span>
+<span class="nc" id="L126">                .map(paymentId -&gt; ResponseEntity.status(HttpStatus.CREATED).body(paymentId));</span>
+    }
+
+    private WalletResponse toResponse(Wallet wallet) {
+<span class="nc" id="L130">        WalletResponse response = new WalletResponse();</span>
+<span class="nc" id="L131">        response.setId(wallet.getId());</span>
+<span class="nc" id="L132">        response.setDocumentType(wallet.getDocumentType());</span>
+<span class="nc" id="L133">        response.setDocumentNumber(wallet.getDocumentNumber());</span>
+<span class="nc" id="L134">        response.setPhoneNumber(wallet.getPhoneNumber());</span>
+<span class="nc" id="L135">        response.setImei(wallet.getImei());</span>
+<span class="nc" id="L136">        response.setEmail(wallet.getEmail());</span>
+<span class="nc" id="L137">        response.setLinkedDebitCardId(wallet.getLinkedDebitCardId());</span>
+<span class="nc" id="L138">        return response;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WalletService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ms-wallet</a> &gt; <a href="index.source.html" class="el_package">com.bank.mswallet.service</a> &gt; <span class="el_source">WalletService.java</span></div><h1>WalletService.java</h1><pre class="source lang-java linenums">package com.bank.mswallet.service;
+
+import com.bank.mswallet.event.WalletEventProducer;
+import com.bank.mswallet.model.Wallet;
+import com.bank.mswallet.repository.WalletRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import java.math.BigDecimal;
+import java.util.UUID;
+
+/**
+ * Servicio reactivo para el monedero móvil Yanki.
+ */
+@Service
+@RequiredArgsConstructor
+public class WalletService {
+
+    private final WalletRepository walletRepository;
+    private final WalletEventProducer walletEventProducer;
+
+    /**
+     * Registra un monedero para un usuario no bancario.
+     *
+     * @param documentType tipo de documento
+     * @param documentNumber documento
+     * @param phoneNumber celular
+     * @param imei dispositivo
+     * @param email correo
+     * @return Mono con el monedero creado
+     */
+    public Mono&lt;Wallet&gt; registerWallet(String documentType, String documentNumber, String phoneNumber,
+                                      String imei, String email) {
+<span class="pc bpc" id="L36" title="2 of 4 branches missed.">        if (documentType == null || documentType.isBlank()) {</span>
+<span class="nc" id="L37">            return Mono.error(new IllegalArgumentException(&quot;El tipo de documento es obligatorio&quot;));</span>
+        }
+<span class="pc bpc" id="L39" title="2 of 4 branches missed.">        if (documentNumber == null || documentNumber.isBlank()) {</span>
+<span class="nc" id="L40">            return Mono.error(new IllegalArgumentException(&quot;El documento es obligatorio&quot;));</span>
+        }
+<span class="pc bpc" id="L42" title="2 of 4 branches missed.">        if (phoneNumber == null || phoneNumber.isBlank()) {</span>
+<span class="nc" id="L43">            return Mono.error(new IllegalArgumentException(&quot;El celular es obligatorio&quot;));</span>
+        }
+<span class="fc" id="L45">        Wallet wallet = new Wallet(documentType, documentNumber, phoneNumber, imei, email);</span>
+<span class="fc" id="L46">        return walletRepository.save(wallet);</span>
+    }
+
+    /**
+     * Asocia un monedero a una tarjeta de debito.
+     *
+     * @param walletId identificador del monedero
+     * @param debitCardId identificador de la tarjeta
+     * @return Mono con el monedero actualizado
+     */
+    public Mono&lt;Wallet&gt; linkDebitCard(String walletId, String debitCardId) {
+<span class="nc bnc" id="L57" title="All 4 branches missed.">        if (debitCardId == null || debitCardId.isBlank()) {</span>
+<span class="nc" id="L58">            return Mono.error(new IllegalArgumentException(&quot;La tarjeta es obligatoria&quot;));</span>
+        }
+<span class="nc" id="L60">        return walletRepository.findById(walletId)</span>
+<span class="nc" id="L61">                .switchIfEmpty(Mono.error(new IllegalArgumentException(&quot;Monedero no encontrado&quot;)))</span>
+<span class="nc" id="L62">                .flatMap(wallet -&gt; {</span>
+<span class="nc" id="L63">                    wallet.setLinkedDebitCardId(debitCardId);</span>
+<span class="nc" id="L64">                    return walletRepository.save(wallet)</span>
+<span class="nc" id="L65">                            .doOnNext(saved -&gt; walletEventProducer.publishLinkedToDebitCard(</span>
+<span class="nc" id="L66">                                    saved.getId(), saved.getPhoneNumber(), debitCardId));</span>
+                });
+    }
+
+    /**
+     * Busca un monedero por ID.
+     *
+     * @param walletId identificador del monedero
+     * @return Mono con el monedero o vacio
+     */
+    public Mono&lt;Wallet&gt; findById(String walletId) {
+<span class="fc" id="L77">        return walletRepository.findById(walletId);</span>
+    }
+
+    /**
+     * Lista todos los monederos.
+     *
+     * @return Flux con los monederos
+     */
+    public Flux&lt;Wallet&gt; findAll() {
+<span class="fc" id="L86">        return walletRepository.findAll();</span>
+    }
+
+    /**
+     * Actualiza los datos de contacto de un monedero.
+     *
+     * @param walletId identificador del monedero
+     * @param email nuevo correo
+     * @param imei nuevo identificador de dispositivo
+     * @return Mono con el monedero actualizado o vacio
+     */
+    public Mono&lt;Wallet&gt; update(String walletId, String email, String imei) {
+<span class="fc" id="L98">        return walletRepository.findById(walletId)</span>
+<span class="fc" id="L99">                .flatMap(wallet -&gt; {</span>
+<span class="fc" id="L100">                    wallet.setEmail(email);</span>
+<span class="fc" id="L101">                    wallet.setImei(imei);</span>
+<span class="fc" id="L102">                    return walletRepository.save(wallet);</span>
+                });
+    }
+
+    /**
+     * Elimina un monedero.
+     *
+     * @param walletId identificador del monedero
+     * @return Mono true si se elimino
+     */
+    public Mono&lt;Boolean&gt; delete(String walletId) {
+<span class="fc" id="L113">        return walletRepository.existsById(walletId)</span>
+<span class="fc" id="L114">                .flatMap(exists -&gt; {</span>
+<span class="fc bfc" id="L115" title="All 2 branches covered.">                    if (exists) {</span>
+<span class="fc" id="L116">                        return walletRepository.deleteById(walletId).then(Mono.just(true));</span>
+                    }
+<span class="fc" id="L118">                    return Mono.just(false);</span>
+                });
+    }
+
+    /**
+     * Envía un pago entre dos celulares.
+     *
+     * @param sourcePhoneNumber origen
+     * @param targetPhoneNumber destino
+     * @param amount monto
+     * @return Mono con el identificador del pago generado
+     */
+    public Mono&lt;String&gt; sendPayment(String sourcePhoneNumber, String targetPhoneNumber, BigDecimal amount) {
+<span class="pc bpc" id="L131" title="2 of 4 branches missed.">        if (sourcePhoneNumber == null || sourcePhoneNumber.isBlank()) {</span>
+<span class="nc" id="L132">            return Mono.error(new IllegalArgumentException(&quot;El origen es obligatorio&quot;));</span>
+        }
+<span class="pc bpc" id="L134" title="2 of 4 branches missed.">        if (targetPhoneNumber == null || targetPhoneNumber.isBlank()) {</span>
+<span class="nc" id="L135">            return Mono.error(new IllegalArgumentException(&quot;El destino es obligatorio&quot;));</span>
+        }
+<span class="pc bpc" id="L137" title="2 of 4 branches missed.">        if (amount == null || amount.signum() &lt;= 0) {</span>
+<span class="nc" id="L138">            return Mono.error(new IllegalArgumentException(&quot;El monto debe ser mayor a cero&quot;));</span>
+        }
+<span class="fc" id="L140">        return walletRepository.findByPhoneNumber(sourcePhoneNumber)</span>
+<span class="fc" id="L141">                .switchIfEmpty(Mono.error(new IllegalArgumentException(&quot;Monedero origen no encontrado&quot;)))</span>
+<span class="fc" id="L142">                .flatMap(source -&gt; walletRepository.findByPhoneNumber(targetPhoneNumber)</span>
+<span class="fc" id="L143">                        .switchIfEmpty(Mono.error(new IllegalArgumentException(&quot;Monedero destino no encontrado&quot;)))</span>
+<span class="fc" id="L144">                        .map(target -&gt; {</span>
+<span class="fc" id="L145">                            String paymentId = UUID.randomUUID().toString();</span>
+<span class="fc" id="L146">                            walletEventProducer.publishPaymentSent(</span>
+<span class="fc" id="L147">                                    paymentId, source.getPhoneNumber(), target.getPhoneNumber(), amount);</span>
+<span class="fc" id="L148">                            return paymentId;</span>
+                        }));
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
